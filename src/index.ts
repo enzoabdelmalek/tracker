@@ -13,8 +13,8 @@ function getSupabase() {
     return createClient(url, key);
 }
 
-app.use(express.json());
 app.use(cors({ origin: "*" }));
+app.use(express.json({ type: ["application/json", "text/plain"] }));
 
 // Serve the tracking script
 app.get("/track.js", (_req, res) => {

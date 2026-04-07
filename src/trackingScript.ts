@@ -18,9 +18,9 @@ export const TRACKING_SCRIPT = `(function(){
 
   function send(){
     var d={business_id:bid,url:location.href,referrer:document.referrer||null,visitor_id:vid,session_id:sid,screen_width:screen.width};
-    var b=new Blob([JSON.stringify(d)],{type:'application/json'});
+    var b=new Blob([JSON.stringify(d)],{type:'text/plain'});
     if(navigator.sendBeacon){navigator.sendBeacon(collectUrl,b);}
-    else{fetch(collectUrl,{method:'POST',body:b,keepalive:true});}
+    else{fetch(collectUrl,{method:'POST',body:JSON.stringify(d),headers:{'Content-Type':'application/json'},keepalive:true});}
   }
 
   if(document.readyState==='complete'){send();}else{window.addEventListener('load',send);}
