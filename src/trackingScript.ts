@@ -18,6 +18,7 @@ export const TRACKING_SCRIPT = `(function(){
 
   var durationUrl=u.origin+'/duration';
   var startTime=Date.now();
+  var totalDuration=0;
 
   function send(){
     var d={business_id:bid,url:location.href,referrer:document.referrer||null,visitor_id:vid,session_id:sid,screen_width:screen.width};
@@ -29,14 +30,15 @@ export const TRACKING_SCRIPT = `(function(){
   function sendDuration(){
     var dur=Math.round((Date.now()-startTime)/1000);
     if(dur<1)return;
-    var d={session_id:sid,duration_seconds:dur};
+    totalDuration+=dur;
+    var d={session_id:sid,duration_seconds:totalDuration};
     var b=new Blob([JSON.stringify(d)],{type:'text/plain'});
     if(navigator.sendBeacon){navigator.sendBeacon(durationUrl,b);}
     else{fetch(durationUrl,{method:'POST',body:JSON.stringify(d),headers:{'Content-Type':'application/json'},keepalive:true});}
   }
 
   document.addEventListener('visibilitychange',function(){
-    if(document.hidden){sendDuration();}
+    if(document.hidden){sendDuration();startTime=Date.now();}
     else{startTime=Date.now();}
   });
 
