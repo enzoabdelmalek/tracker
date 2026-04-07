@@ -18,7 +18,7 @@ export const TRACKING_SCRIPT = `(function(){
 
   var durationUrl=u.origin+'/duration';
   var startTime=Date.now();
-  var totalDuration=0;
+  var totalDuration=parseInt(sessionStorage.getItem('_vwa_dur')||'0',10);
 
   function send(){
     var d={business_id:bid,url:location.href,referrer:document.referrer||null,visitor_id:vid,session_id:sid,screen_width:screen.width};
@@ -31,6 +31,7 @@ export const TRACKING_SCRIPT = `(function(){
     var dur=Math.round((Date.now()-startTime)/1000);
     if(dur<1)return;
     totalDuration+=dur;
+    sessionStorage.setItem('_vwa_dur',String(totalDuration));
     var d={session_id:sid,duration_seconds:totalDuration};
     var b=new Blob([JSON.stringify(d)],{type:'text/plain'});
     if(navigator.sendBeacon){navigator.sendBeacon(durationUrl,b);}
