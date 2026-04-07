@@ -14,6 +14,7 @@ function getSupabase() {
 }
 
 app.use(express.json());
+app.use(cors({ origin: "*" }));
 
 // Serve the tracking script
 app.get("/track.js", (_req, res) => {
@@ -24,7 +25,7 @@ app.get("/track.js", (_req, res) => {
 });
 
 // Collect pageview events
-app.post("/collect", cors({ origin: "*" }), async (req, res) => {
+app.post("/collect", async (req, res) => {
     const { business_id, url, referrer, visitor_id, session_id, screen_width } = req.body;
 
     if (!business_id || !url) {
