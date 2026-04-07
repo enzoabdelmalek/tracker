@@ -1,0 +1,31 @@
+// This is the client-side tracking script served as track.js
+// It auto-detects the collect endpoint from its own src URL
+export const TRACKING_SCRIPT = `(function(){
+  var s=document.currentScript||document.querySelector('script[src*="track.js"]');
+  if(!s)return;
+  var src=s.getAttribute('src')||'';
+  var u=new URL(src,location.href);
+  var bid=u.searchParams.get('id');
+  if(!bid)return;
+  var collectUrl=u.origin+'/collect';
+
+  if(navigator.doNotTrack==='1')return;
+
+  var vid=localStorage.getItem('_vwa_vid');
+  if(!vid){vid=Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem('_vwa_vid',vid);}
+  var sid=sessionStorage.getItem('_vwa_sid');
+  if(!sid){sid=Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem('_vwa_sid',sid);}
+
+  function send(){
+    var d={business_id:bid,url:location.href,referrer:document.referrer||null,visitor_id:vid,session_id:sid,screen_width:screen.width};
+    var b=new Blob([JSON.stringify(d)],{type:'application/json'});
+    if(navigator.sendBeacon){navigator.sendBeacon(collectUrl,b);}
+    else{fetch(collectUrl,{method:'POST',body:b,keepalive:true});}
+  }
+
+  if(document.readyState==='complete'){send();}else{window.addEventListener('load',send);}
+
+  var pp=history.pushState;
+  history.pushState=function(){pp.apply(this,arguments);send();};
+  window.addEventListener('popstate',send);
+})();`;
