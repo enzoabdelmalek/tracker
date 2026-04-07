@@ -6,10 +6,12 @@ import { TRACKING_SCRIPT } from "./trackingScript";
 const app = express();
 const port = process.env.PORT || 3001;
 
-const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabase() {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) throw new Error(`Missing env vars: SUPABASE_URL=${url ? "ok" : "missing"}, SUPABASE_SERVICE_ROLE_KEY=${key ? "ok" : "missing"}`);
+    return createClient(url, key);
+}
 
 app.use(express.json());
 
@@ -30,7 +32,7 @@ app.post("/collect", cors({ origin: "*" }), async (req, res) => {
         return;
     }
 
-    const { error } = await supabase.from("page_views").insert({
+    const { error } = await getSupabase().from("page_views").insert({
         business_id,
         url,
         referrer: referrer || null,
