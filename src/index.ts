@@ -24,30 +24,63 @@ app.get("/track.js", (_req, res) => {
     res.send(TRACKING_SCRIPT);
 });
 
-// Collect pageview events
+// Collect pageview — upsert on session_id
 app.post("/collect", async (req, res) => {
     const { business_id, url, referrer, visitor_id, session_id, screen_width } = req.body;
 
-    if (!business_id || !url) {
+    if (!business_id || !url || !session_id) {
         res.status(400).end();
         return;
     }
 
-    const { error } = await getSupabase().from("page_views").insert({
-        business_id,
-        url,
-        referrer: referrer || null,
-        visitor_id: visitor_id || null,
-        session_id: session_id || null,
-        screen_width: screen_width || null,
-        user_agent: req.headers["user-agent"] || null,
-    });
+    const supabase = getSupabase();
 
-    if (error) {
-        console.error("DB error:", error);
-        res.status(500).end();
+    const { data: existing } = await supabase
+        .from("sessions")
+        .select("id, pages, page_count")
+        .eq("session_id", session_id)
+        .single();
+
+    if (existing) {
+        const pages: string[] = existing.pages || [];
+        if (!pages.includes(url)) pages.push(url);
+        const { error } = await supabase
+            .from("sessions")
+            .update({ page_count: existing.page_count + 1, pages, updated_at: new Date().toISOString() })
+            .eq("session_id", session_id);
+        if (error) { console.error("DB update error:", error); res.status(500).end(); return; }
+    } else {
+        const { error } = await supabase
+            .from("sessions")
+            .insert({
+                session_id,
+                business_id,
+                visitor_id: visitor_id || null,
+                referrer: referrer || null,
+                screen_width: screen_width || null,
+                user_agent: req.headers["user-agent"] || null,
+                pages: [url],
+                page_count: 1,
+            });
+        if (error) { console.error("DB insert error:", error); res.status(500).end(); return; }
+    }
+
+    res.status(204).end();
+});
+
+// Update session duration
+app.post("/duration", async (req, res) => {
+    const { session_id, duration_seconds } = req.body;
+
+    if (!session_id || !duration_seconds) {
+        res.status(400).end();
         return;
     }
+
+    await getSupabase()
+        .from("sessions")
+        .update({ duration_seconds, updated_at: new Date().toISOString() })
+        .eq("session_id", session_id);
 
     res.status(204).end();
 });

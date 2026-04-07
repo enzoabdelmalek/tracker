@@ -16,6 +16,9 @@ export const TRACKING_SCRIPT = `(function(){
   var sid=sessionStorage.getItem('_vwa_sid');
   if(!sid){sid=Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem('_vwa_sid',sid);}
 
+  var durationUrl=u.origin+'/duration';
+  var startTime=Date.now();
+
   function send(){
     var d={business_id:bid,url:location.href,referrer:document.referrer||null,visitor_id:vid,session_id:sid,screen_width:screen.width};
     var b=new Blob([JSON.stringify(d)],{type:'text/plain'});
@@ -23,9 +26,23 @@ export const TRACKING_SCRIPT = `(function(){
     else{fetch(collectUrl,{method:'POST',body:JSON.stringify(d),headers:{'Content-Type':'application/json'},keepalive:true});}
   }
 
+  function sendDuration(){
+    var dur=Math.round((Date.now()-startTime)/1000);
+    if(dur<1)return;
+    var d={session_id:sid,duration_seconds:dur};
+    var b=new Blob([JSON.stringify(d)],{type:'text/plain'});
+    if(navigator.sendBeacon){navigator.sendBeacon(durationUrl,b);}
+    else{fetch(durationUrl,{method:'POST',body:JSON.stringify(d),headers:{'Content-Type':'application/json'},keepalive:true});}
+  }
+
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden){sendDuration();}
+    else{startTime=Date.now();}
+  });
+
   if(document.readyState==='complete'){send();}else{window.addEventListener('load',send);}
 
   var pp=history.pushState;
-  history.pushState=function(){pp.apply(this,arguments);send();};
-  window.addEventListener('popstate',send);
+  history.pushState=function(){sendDuration();pp.apply(this,arguments);startTime=Date.now();send();};
+  window.addEventListener('popstate',function(){sendDuration();startTime=Date.now();send();});
 })();`;
